@@ -31,7 +31,7 @@ def error(*args):
     year, month, day, hour, min, sec = localtime()[:6]
     print("-"*60)
     print('Time: %s.%s.%s %02d:%02d:%02d' % (day, month, year, hour, min, sec))
-    if len(args) > 0:
+    if args:
         print('Message:', *args)
     print('Python Error:')
     print_exc()
@@ -45,13 +45,10 @@ def debug(*args, debugmode_only = False):
     else:
         debug_mode = False
 
-    if not (debug_only and not debug_mode): # Messages with debug_only are only printed in debug mode
-
-        if len(args) > 0:
-            
-            year, month, day, hour, min, sec = localtime()[:6]
-            print("-"*60)
-            print('Debug: %s.%s.%s %02d:%02d:%02d\t' % (day, month, year, hour, min, sec), *args)
+    if (not debug_only or debug_mode) and args:
+        year, month, day, hour, min, sec = localtime()[:6]
+        print("-"*60)
+        print('Debug: %s.%s.%s %02d:%02d:%02d\t' % (day, month, year, hour, min, sec), *args)
     
 def debug_only(*args):
 
