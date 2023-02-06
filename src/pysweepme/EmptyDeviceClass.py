@@ -97,10 +97,7 @@ class EmptyDevice():
         
     def restore_parameter(self, key):
         """ restores a parameter from the ParameterStore for a given key"""
-        if key in self._ParameterStore:
-            return self._ParameterStore[key]
-        else:
-            return None
+        return self._ParameterStore[key] if key in self._ParameterStore else None
 
     def _on_run(self):
         """
@@ -160,10 +157,7 @@ class EmptyDevice():
             List of Strings
         """
 
-        if self.isConfigFile():
-            return _config.sections()
-        else:
-            return []
+        return _config.sections() if self.isConfigFile() else []
 
     def getConfigOptions(self, section):
         """ deprecated: remains for compatibility reasons"""
@@ -183,10 +177,9 @@ class EmptyDevice():
         """
 
         vals = {}
-        if self.isConfigFile():
-            if section in _config:
-                for key in _config[section]:
-                    vals[key] = _config[section][key]
+        if self.isConfigFile() and section in _config:
+            for key in _config[section]:
+                vals[key] = _config[section][key]
         return vals
 
     def getConfig(self):
@@ -199,8 +192,10 @@ class EmptyDevice():
         that contains for each section a dictionary with the options
         """
 
-        config = {section: self.getConfigOptions(section) for section in self.getConfigSections()}
-        return config
+        return {
+            section: self.getConfigOptions(section)
+            for section in self.getConfigSections()
+        }
 
     def get_GUIparameter(self, parameter):
         """ is overwritten by Device Class to retrieve the GUI parameter selected by the user """
@@ -211,22 +206,24 @@ class EmptyDevice():
         return {}
                
     def set_parameters(self, parameter={}):
-    
+
         standard_parameter = self.set_GUIparameter()
-        
+
         for key in standard_parameter:
             if isinstance(standard_parameter[key], list):
                 standard_parameter[key] = standard_parameter[key][0] # take the first value from list as default value
-             
+
         for key in parameter:
             
             if key in standard_parameter or key in ["Port", "Label", "Channel"]:
                 standard_parameter[key] = parameter[key]
             else:
-                raise Exception("Keyword '%s' not supported as parameter. Supported parameters are: %s" % ( key, ", ".join( list(standard_parameter.keys()) ) ) )
-                
+                raise Exception(
+                    f"""Keyword '{key}' not supported as parameter. Supported parameters are: {", ".join(list(standard_parameter.keys()))}"""
+                )
+
         self.update_parameters(standard_parameter)        
-                
+
         self.get_GUIparameter(standard_parameter)
         
     def update_parameters(self, parameter={}):
@@ -364,7 +361,7 @@ class EmptyDevice():
        
     def call(self):
         """ function to be overloaded if needed """
-        return [float('nan') for x in self.variables]
+        return [float('nan') for _ in self.variables]
         
     def process(self):
         """ function to be overloaded if needed """
@@ -444,13 +441,8 @@ class EmptyDevice():
         return self.units
         
     def get_variables_units(self):
-    
-        variable_units = {}
-        
-        for var, unit in zip(self.variables, self.units):
-            variable_units[var] = unit
-            
-        return variable_units
+
+        return dict(zip(self.variables, self.units))
         
     def set_value(self, value):
         self.value = value
@@ -486,6 +478,4 @@ class EmptyDevice():
         self.request_result()
         self.read_result()
         self.process_data()
-        result = self.call()
-        
-        return result
+        return self.call()

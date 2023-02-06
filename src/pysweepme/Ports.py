@@ -64,9 +64,9 @@ def open_resourcemanager(visafile_path=""):
     """ returns an open resource manager instance """
 
     rm = None
-    
+
     if visafile_path == "":
-    
+
         possible_visa_paths = [
                                # default path:
                                "",
@@ -77,20 +77,22 @@ def open_resourcemanager(visafile_path=""):
                                # RSvisa runtime:
                                "C:\\Program Files (x86)\\IVI Foundation\\VISA\\WinNT\\RsVisa\\bin\\visa32.dll",
                               ]
-    
+
         for visa_path in possible_visa_paths:
-        
+
             try:
                 rm = pyvisa.ResourceManager(visa_path)
                 break
             except:
                 continue
-              
+
     else:
         try:
-            rm = pyvisa.ResourceManager(visafile_path) 
+            rm = pyvisa.ResourceManager(visafile_path)
         except:
-            error("Creating resource manager from visa dll file '%s' failed." % visafile_path)
+            error(
+                f"Creating resource manager from visa dll file '{visafile_path}' failed."
+            )
 
     return rm
 
@@ -138,10 +140,7 @@ def get_resourcemanager():
 def is_resourcemanager():
     """ check whether there is a resource manager instance """
 
-    if "rm" in globals():
-        return True
-    else:
-        return False
+    return "rm" in globals()
     
     
 def get_port(ID, properties={}):
@@ -152,71 +151,73 @@ def get_port(ID, properties={}):
         try:
             port = GPIBport(ID)
         except:
-            error("Ports: Cannot create GPIB port object for %s" % ID)
+            error(f"Ports: Cannot create GPIB port object for {ID}")
             return False
-           
+
     elif ID.startswith("PXI"):  # todo: Prologix can be removed here, if ID does not start with Prologix anymore
                     
         try:
             port = PXIport(ID)
         except:
-            error("Ports: Cannot create PXI port object for %s" % ID)
+            error(f"Ports: Cannot create PXI port object for {ID}")
             return False       
-            
+
     elif ID.startswith("ASRL"):
                     
         try:
             port = ASRLport(ID)
         except:
-            error("Ports: Cannot create ASRL port object for %s" % ID)
+            error(f"Ports: Cannot create ASRL port object for {ID}")
             return False
-                   
- 
+
+
     elif ID.startswith("TCPIP"):
             
         try:
             port = TCPIPport(ID)
         except:
-            error("Ports: Cannot create TCPIP port object for %s" % ID)
+            error(f"Ports: Cannot create TCPIP port object for {ID}")
             return False
-         
+
     elif ID.startswith("COM"):
         
         try:
             port = COMport(ID)
         except:
-            error("Ports: Cannot create COM port object for %s" % ID)
+            error(f"Ports: Cannot create COM port object for {ID}")
             return False         
-    
+
     elif ID.startswith("USB") or ID.startswith("USBTMC"):
 
         try:
             port = USBTMCport(ID)
         except:
-            error("Ports: Cannot create USBTMC port object for %s" % ID)
+            error(f"Ports: Cannot create USBTMC port object for {ID}")
             return False  
 
     else:
-        error("Ports: Cannot create port object for %s as port type is not defined." % ID)
+        error(
+            f"Ports: Cannot create port object for {ID} as port type is not defined."
+        )
         return False  
-            
+
 
     # make sure the initial parameters are set
     port.initialize_port_properties()
-                    
-        
+
+
     # here default properties are overwritten by specifications given in the DeviceClass
     # only overwrite by the DeviceClass which opens the port to allow to alter the properties further in open()
     port.port_properties.update(properties)             
-                         
+
     # port is checked if being open and if not, port is opened
     if port.port_properties["open"] is False:
-        
+
         # in open(), port_properties can further be changed by global PortDialog settings 
         port.open()
-        
+
     # print(port.port_properties)    
-        
+
     return port
         
 
@@ -258,8 +259,7 @@ class PortType(object):
 
     def find_resources(self):
         
-        resources = self.find_resources_internal()
-        return resources
+        return self.find_resources_internal()
         
     def find_resources_internal(self):
         return []
@@ -300,25 +300,23 @@ class COM(PortType):
 
 
     def find_resources_internal(self):
-    
+
         resources = []
-        
-        # we list all prologix com port addresses to exclude them from the com port resources
-        prologix_addresses = []
-        for controller in get_prologix_controllers():
-            prologix_addresses.append(controller.get_address())
-    
+
+        prologix_addresses = [
+            controller.get_address() for controller in get_prologix_controllers()
+        ]
         try:
             for ID in serial.tools.list_ports.comports():
 
                 ID = str(ID.device).split(' ')[0]
-                
+
                 if ID not in prologix_addresses:
                     resources.append(ID)
-                
+
         except:
             error("Error during findind COM ports.")                                        
-        
+
         return resources
         
                 
@@ -409,15 +407,33 @@ class USBdevice(object):
     # created in order to collect all properties in one object
     
     def __init__(self):
-    
-        self.properties = {}
-        
-        for name in ('Availability', 'Caption', 'ClassGuid', 'ConfigManagerUserConfig', 'CreationClassName',
-                     'Description', 'DeviceID', 'ErrorCleared', 'ErrorDescription', 'InstallDate', 'LastErrorCode',
-                     'Manufacturer', 'Name', 'PNPDeviceID', 'PowerManagementCapabilities', 'PowerManagementSupported',
-                     'Service', 'Status', 'StatusInfo', 'SystemCreationClassName', 'SystemName'):
-             
-            self.properties[name] = None
+
+        self.properties = {
+            name: None
+            for name in (
+                'Availability',
+                'Caption',
+                'ClassGuid',
+                'ConfigManagerUserConfig',
+                'CreationClassName',
+                'Description',
+                'DeviceID',
+                'ErrorCleared',
+                'ErrorDescription',
+                'InstallDate',
+                'LastErrorCode',
+                'Manufacturer',
+                'Name',
+                'PNPDeviceID',
+                'PowerManagementCapabilities',
+                'PowerManagementSupported',
+                'Service',
+                'Status',
+                'StatusInfo',
+                'SystemCreationClassName',
+                'SystemName',
+            )
+        }
         
         
 class USBTMC(PortType):
@@ -662,12 +678,11 @@ class GPIBport(Port):
         
     def read_internal(self, digits=0):
              
-        if "Prologix" in self.port_properties["ID"]:
-            answer = self.port.read(self.port_properties["ID"].split("::")[1])
-        else:
-            answer = self.port.read()
-            
-        return answer      
+        return (
+            self.port.read(self.port_properties["ID"].split("::")[1])
+            if "Prologix" in self.port_properties["ID"]
+            else self.port.read()
+        )      
     
 
 class PXIport(Port):
@@ -709,8 +724,7 @@ class PXIport(Port):
 
     def read_internal(self, digits=0):
              
-        answer = self.port.read()
-        return answer          
+        return self.port.read()          
 
 
 class ASRLport(Port):
@@ -772,9 +786,7 @@ class ASRLport(Port):
         
     def read_internal(self, digits=0):
                 
-        answer = self.port.read()
- 
-        return answer      
+        return self.port.read()      
                 
         
 class USBTMCport(Port):
@@ -811,8 +823,7 @@ class USBTMCport(Port):
 
     def read_internal(self, digits=0):
 
-        answer = self.port.read()            
-        return answer
+        return self.port.read()
         
         
 class TCPIPport(Port):
@@ -852,9 +863,7 @@ class TCPIPport(Port):
         time.sleep(self.port_properties["delay"])
 
     def read_internal(self, digits=0):
-        answer = self.port.read()
-                
-        return answer
+        return self.port.read()
 
 
 class COMport(Port):
@@ -899,14 +908,10 @@ class COMport(Port):
     def open_internal(self):
 
         self.refresh_port()
-                            
-        if not self.port.isOpen():
-            self.port.open()
-        else:
+
+        if self.port.isOpen():
             self.port.close()
-            self.port.open()
-            
- 
+        self.port.open()
         self.port.reset_input_buffer()
         self.port.reset_output_buffer()
         
@@ -945,32 +950,22 @@ class COMport(Port):
                 
         if digits == 0:
             answer, EOLfound = self.readline()
-            
-            if not self.port_properties["raw_read"]:
-                try:
-                    answer = answer.decode(self.port_properties["encoding"])
-                except:
-                    error("Unable to decode the reading from %s. Please check whether the baudrate "
-                          "and the terminator are correct (Ports -> PortManager -> COM). "
-                          "You can get the raw reading by setting the key 'raw_read' of "
-                          "self.port_properties to True" % (self.port_properties["ID"]))
-                    raise
-                    
+
         else:
             answer = self.port.read(digits)
-            
+
             EOLfound = True
-            
-            if not self.port_properties["raw_read"]:
-                try:
-                    answer = answer.decode(self.port_properties["encoding"])
-                except:
-                    error("Unable to decode the reading from %s. Please check whether the baudrate "
-                          "and the terminator are correct (Ports -> PortManager -> COM). "
-                          "You can get the raw reading by setting the key 'raw_read' of "
-                          "self.port_properties to True" % (self.port_properties["ID"]))
-                    raise
-                                    
+
+        if not self.port_properties["raw_read"]:
+            try:
+                answer = answer.decode(self.port_properties["encoding"])
+            except:
+                error("Unable to decode the reading from %s. Please check whether the baudrate "
+                      "and the terminator are correct (Ports -> PortManager -> COM). "
+                      "You can get the raw reading by setting the key 'raw_read' of "
+                      "self.port_properties to True" % (self.port_properties["ID"]))
+                raise
+
         if answer == "" and not EOLfound and self.port_properties["Exception"] is True:
             self.close()
             raise Exception("Port '%s' with ID '%s' does not respond.\n"
@@ -1001,28 +996,25 @@ class COMport(Port):
         
     def readline(self):
         # this function allows to change the EOL, rewritten from pyserial
-        
-        if not self.port_properties["EOLread"] is None:
-            EOL = self.port_properties["EOLread"].encode(self.port_properties["encoding"])
-        else:
-            EOL = self.port_properties["EOL"].encode(self.port_properties["encoding"])
 
+        EOL = (
+            self.port_properties["EOL"].encode(self.port_properties["encoding"])
+            if self.port_properties["EOLread"] is None
+            else self.port_properties["EOLread"].encode(
+                self.port_properties["encoding"]
+            )
+        )
         leneol = len(EOL)
         line = bytearray()
-        
+
         eol_found = False
-        
-        while True:
-            c = self.port.read(1)
-            if c:
-                line += c
-                if line[-leneol:] == EOL:
-                    eol_found = True
-                    break
-                    
-            else:
+
+        while c := self.port.read(1):
+            line += c
+            if line[-leneol:] == EOL:
+                eol_found = True
                 break
-                
+
         return bytes(line[:-leneol]), eol_found
         
         
@@ -1057,35 +1049,35 @@ class PrologixGPIBcontroller:
 
     def list_resources(self):
         if self._address is not None:
-            return ["GPIB::%i::Prologix@%s" % (i, self._address) for i in range(1, 31, 1)]
+            return ["GPIB::%i::Prologix@%s" % (i, self._address) for i in range(1, 31)]
         else:
             return []
 
     def open(self, port_properties):
-    
+
         ID = port_properties["ID"].split("::")[1]
 
         self.ID_port_properties[ID] = port_properties
-       
+
         if not self.port.isOpen():
             self.port.open()
-        
-        self.port.timeout = self.ID_port_properties[ID]["timeout"]        
+
+        self.port.timeout = self.ID_port_properties[ID]["timeout"]
         self.port.timeout = 0.1     
-            
+
         self.port.reset_input_buffer()
         self.port.reset_output_buffer() 
-        
+
         self.set_controller_in_charge()  # Controller in Charge CIC
-           
+
         self.set_mode(1)  # 1 = controller mode
-        
+
         terminator = "\r\n"
-        
-        if not self.ID_port_properties[ID]["GPIB_EOLwrite"] is None:
+
+        if self.ID_port_properties[ID]["GPIB_EOLwrite"] is not None:
             terminator = self.ID_port_properties[ID]["GPIB_EOLwrite"]
-                
-        if not self.ID_port_properties[ID]["GPIB_EOLread"] is None:
+
+        if self.ID_port_properties[ID]["GPIB_EOLread"] is not None:
             terminator = self.ID_port_properties[ID]["GPIB_EOLread"]
 
         if terminator in self.terminator_character:
@@ -1096,11 +1088,11 @@ class PrologixGPIBcontroller:
             terminator_index = 0  # CR/LF
 
         self.set_eos(terminator_index)    # see self.terminator_character for all options
-        
+
         self.set_eoi(1)   # 1 = eoi at end
-        
+
         self.set_auto(0)  # 0 =  no read-after-write
-        
+
         self.set_read_timeout(0.05)  # read timeout in s
         # self.set_readtimeout(self.ID_port_properties[ID]["timeout"])  # read timeout in s
         
@@ -1119,22 +1111,22 @@ class PrologixGPIBcontroller:
         """ sends a non-empty command string to the prologix controller
         and changes the GPIB address if needed beforehand
         """
-    
+
         if cmd != "":
-    
+
             if ID == "" or cmd.startswith("++"):
                 msg = (cmd+"\n").encode('latin-1')
-                
+
             else:
-          
+                  
                 if ID != self._current_gpib_ID:
                     
                     self._current_gpib_ID = str(ID)
-                    
+
                     # set to current GPIB address
                     # calls 'write' again, but as the command starts with '++' will not lead to an endless iteration
-                    self.write("++addr %s" % self._current_gpib_ID)  
-                
+                    self.write(f"++addr {self._current_gpib_ID}")  
+
                 # some special characters need to be escaped before sending
                 # we start to replace ESC as it will be added by other commands as well
                 # and would be otherwise replaced again
@@ -1144,7 +1136,7 @@ class PrologixGPIBcontroller:
                 cmd.replace(chr(43), chr(27)+chr(43))  # ‘+’ (ASCII 43)
 
                 msg = (cmd+"\n").encode(self.ID_port_properties[ID]["encoding"])
-                
+
             # print("write:", msg)
             self.port.write(msg)
 
@@ -1179,28 +1171,28 @@ class PrologixGPIBcontroller:
         self.write("++ifc")
 
     def set_mode(self, mode):
-        self.write("++mode %s" % str(mode))
+        self.write(f"++mode {str(mode)}")
         
     def get_mode(self):
         self.write("++mode")
         return self.port.readline().rstrip().decode()
     
     def set_eos(self, eos):
-        self.write("++eos %s" % str(eos))  # EOS terminator - 0:CR+LF, 1:CR, 2:LF, 3:None
+        self.write(f"++eos {str(eos)}")
            
     def get_eos(self):
         self.write("++eos")
         return self.port.readline().rstrip().decode()
 
     def set_eoi(self, eoi):
-        self.write("++eoi %s" % str(eoi))  # 0 = no eoi at end, 1 = eoi at end
+        self.write(f"++eoi {str(eoi)}")
            
     def get_eoi(self):
         self.write("++eoi")
         return self.port.readline().rstrip().decode()
 
     def set_auto(self, auto):
-        self.write("++auto %s" % str(auto))  # 0 not read-after-write, 1 = read-after-write
+        self.write(f"++auto {str(auto)}")
 
     def get_auto(self):
         self.write("++auto")
@@ -1218,7 +1210,7 @@ class PrologixGPIBcontroller:
         
     def set_listenonly(self, listenonly):
         """ set listen-only, only supported in mode = device! """
-        self.write("++lon %s" % str(listenonly))  # 0 disable 'listen-only' mode, 1 enable 'listen-only' mode
+        self.write(f"++lon {str(listenonly)}")
 
     def get_listenonly(self):
         self.write("++lon")

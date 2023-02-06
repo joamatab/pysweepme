@@ -40,43 +40,43 @@ FolderManager_initialized = False
 def addFolderToPATH(path_to_add=""):
     """ used by DeviceClasses and CustomFunctions to add their path to PATH. If no argument is given, the path of the calling file is used."""
 
-    if path_to_add != "":
-
-        if os.path.exists(path_to_add):
-            main_path = path_to_add
-        else:
-            return False
-    else:
+    if path_to_add == "":
 
         main_file = inspect.stack()[1][1]
         main_path = os.path.dirname(os.path.realpath(main_file))
 
 
-    if not main_path in sys.path:
+    elif os.path.exists(path_to_add):
+        main_path = path_to_add
+    else:
+        return False
+    if main_path not in sys.path:
         sys.path = [main_path] + sys.path
 
-    if not main_path in os.environ["PATH"].split(os.pathsep):
+    if main_path not in os.environ["PATH"].split(os.pathsep):
         os.environ["PATH"] = main_path + os.pathsep + os.environ["PATH"]
 
     libs_path = main_path + os.sep + "libs"
-    if not libs_path in sys.path:
+    if libs_path not in sys.path:
         sys.path = [libs_path] + sys.path
 
     # add also library.zip in libs
-    if os.path.exists(libs_path + os.sep + "library.zip"):
-        if not libs_path + os.sep + "library.zip" in sys.path:
-            sys.path = [libs_path + os.sep + "library.zip"] + sys.path
+    if (
+        os.path.exists(libs_path + os.sep + "library.zip")
+        and libs_path + os.sep + "library.zip" not in sys.path
+    ):
+        sys.path = [libs_path + os.sep + "library.zip"] + sys.path
 
-    if not libs_path in os.environ["PATH"].split(os.pathsep):
+    if libs_path not in os.environ["PATH"].split(os.pathsep):
         os.environ["PATH"] = libs_path + os.pathsep + os.environ["PATH"]
-        
+
     subfolders = [x[0] for x in os.walk(libs_path) if not x[0].endswith('__pycache__')]
     for folder in subfolders:
 
         # we only update os.environ["PATH"] but not sys.path as this
         # leads to problems with the import of submodules that have the
         # same name as the main package
-        if not folder in os.environ["PATH"].split(os.pathsep):
+        if folder not in os.environ["PATH"].split(os.pathsep):
             os.environ["PATH"] = folder + os.pathsep + os.environ["PATH"]
 
     return True
@@ -85,45 +85,43 @@ def addFolderToPATH(path_to_add=""):
 def addModuleFolderToPATH(path_to_add = ""):
     """ used by Modules to add their path to PATH. If no argument is given, the path of the calling Module is used."""
 
-    if path_to_add != "":
-    
-        if os.path.exists(path_to_add):
-            main_path = path_to_add
-        else:
-            return False
-            
-    else:
+    if path_to_add == "":
         if TemporaryFolderForPATH != None and os.path.exists(TemporaryFolderForPATH):
             main_path = TemporaryFolderForPATH
-    
+
         else:
             main_file = inspect.stack()[1][1]    
             main_path = os.path.dirname(os.path.realpath(main_file))
-        
+
+    elif os.path.exists(path_to_add):
+        main_path = path_to_add
+    else:
+        return False
+
     # print(main_path)
-    
-    if not main_path in sys.path:
+
+    if main_path not in sys.path:
         sys.path = [main_path] + sys.path
-        
-    if not main_path in os.environ["PATH"].split(os.pathsep):
+
+    if main_path not in os.environ["PATH"].split(os.pathsep):
         os.environ["PATH"] = main_path + os.pathsep + os.environ["PATH"] 
-    
-    subfolders = [x[0] for x in os.walk(main_path) if not x[0].endswith('__pycache__')]  
+
+    subfolders = [x[0] for x in os.walk(main_path) if not x[0].endswith('__pycache__')]
     # print(subfolders)
-        
+
     # add also library.zip to subdirectories if it exists
     for folder in subfolders:
         if os.path.exists(folder + os.sep + "library.zip"):
             subfolders.append(folder + os.sep + "library.zip")
 
-    
+
     for folder in subfolders:
-        if not folder in sys.path:
+        if folder not in sys.path:
             sys.path = [folder] + sys.path
-            
-        if not folder in os.environ["PATH"].split(os.pathsep):
+
+        if folder not in os.environ["PATH"].split(os.pathsep):
             os.environ["PATH"] = folder + os.pathsep + os.environ["PATH"] 
-    
+
     return True
     
     
@@ -140,44 +138,42 @@ def unsetTemporaryFolderForPATH():
 def get_path(identifier):
     """ returns a path for a given identifier, such as 'CUSTOMDEVICES', 'DEVICES', ... """
     
-    if not "FoMa" in globals():       
+    if "FoMa" not in globals():       
         FoMa = FolderManager(create = False)
 
     if identifier in FoMa.folders:
         return FoMa.get_path(identifier)
-    else:
-        debug("FolderManager: Folder %s unknown" % identifier)
-        return False
+    debug(f"FolderManager: Folder {identifier} unknown")
+    return False
     
 def set_path(identifier, path):
     """ sets a path for a given identifier, such as 'CUSTOMDEVICES', 'DEVICES', ... """
 
-    if not "FoMa" in globals():         
+    if "FoMa" not in globals():         
         FoMa = FolderManager(create = False)
-     
+
     if identifier in FoMa.folders:
         FoMa.set_path(identifier, path)
     else:
-        debug("FolderManager: Folder %s unknown" % identifier)
+        debug(f"FolderManager: Folder {identifier} unknown")
         return False
     
             
 def get_file(identifier):
 
-    if not "FoMa" in globals():           
+    if "FoMa" not in globals():           
         FoMa = FolderManager(create = False)
-                
+
     if identifier in FoMa.files:
         return FoMa.get_file(identifier)
-    else:
-        debug("FolderManager: File %s unknown" % identifier)
-        return False
+    debug(f"FolderManager: File {identifier} unknown")
+    return False
             
 def set_file(identifier, path):
 
-    if not "FoMa" in globals():        
+    if "FoMa" not in globals():        
         FoMa = FolderManager(create = False)
-            
+
     if identifier in FoMa.files:
         return FoMa.set_file(identifier, path)
 
